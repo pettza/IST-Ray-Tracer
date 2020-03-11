@@ -63,7 +63,30 @@ int WindowHandle = 0;
 
 Color rayTracing( Ray ray, int depth, float ior_1)  //index of refraction of medium 1 where the ray is travelling
 {
-	//INSERT HERE YOUR CODE
+	int n_obj = scene->getNumObjects();
+	for (int obj_idx = 0; obj_idx < n_obj; obj_idx++)
+	{
+		Object* obj = scene->getObject(obj_idx);
+		float dist;
+		
+		if (obj->intercepts(ray, dist))
+		{
+			Vector hit_p = ray.origin + ray.direction * dist;
+			Vector N = obj->getNormal(hit_p);
+			int n_lights = scene->getNumLights();
+
+			for (int light_idx = 0; light_idx < n_lights; light_idx++)
+			{
+				Light* light = scene->getLight(light_idx);
+				Vector L = light->position - hit_p;
+
+				if (N * L > .0) return obj->GetMaterial()->GetDiffColor();
+			}
+
+			break;
+		}
+	}
+
 	return Color(0.0f, 0.0f, 0.0f);
 }
 
@@ -262,13 +285,9 @@ void renderScene()
 			pixel.x = x + 0.5f;  
 			pixel.y = y + 0.5f;
 
-			/*YOUR 2 FUNTIONS:
 			Ray ray = scene->GetCamera()->PrimaryRay(pixel);
 			color = rayTracing(ray, 1, 1.0);
-			*/
-
-			color = scene->GetBackgroundColor(); //just for the template
-
+			
 			img_Data[counter++] = u8fromfloat((float)color.r());
 			img_Data[counter++] = u8fromfloat((float)color.g());
 			img_Data[counter++] = u8fromfloat((float)color.b());

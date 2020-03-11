@@ -52,7 +52,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
    float l;
 
    //Calculate the normal plane: counter-clockwise vectorial product.
-   PN = Vector(0, 0, 0);		
+   PN = (P2 - P1) % (P0 - P1);
 
    if ((l=PN.length()) == 0.0)
    {
@@ -62,7 +62,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
    {
      PN.normalize();
 	 //Calculate D
-     D  = 0.0f;
+	 D = PN * P0;
    }
 }
 
@@ -72,8 +72,12 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 
 bool Plane::intercepts( Ray& r, float& t )
 {
-  
-   return (false);
+	float prod = PN * r.direction;
+
+	if (prod == .0) return false;
+	
+	t = - (D + r.origin * PN) / prod;	
+	return true;
 }
 
 Vector Plane::getNormal(Vector point) 
@@ -82,9 +86,31 @@ Vector Plane::getNormal(Vector point)
 }
 
 
-bool Sphere::intercepts(Ray& r, float& t )
+bool Sphere::intercepts(Ray& r, float& t)
 {
-  return (false);
+	float b, c;
+	Vector co = r.origin - center;
+
+	c = co * co - radius * radius;
+	b = co * r.direction * 2.;
+
+	if (c < .0) // ray inside sphere
+	{
+		t = b + sqrtf(b * b - 4. * c);
+		return true;
+	}
+	else 
+	{
+		float d = sqrtf(b * b - 4. * c);
+		if (b > .0 && d > .0)
+		{
+
+			t = b - d;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
