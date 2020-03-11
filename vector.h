@@ -16,8 +16,8 @@ public:
 	float length();
 	Vector&	normalize();
 	Vector operator=(const Vector& v);
-	Vector operator+( const Vector& v );
-	Vector operator-( const Vector& v );
+	Vector operator+( const Vector& v ) const;
+	Vector operator-( const Vector& v ) const;
 	Vector operator*( float f );
 	float  operator*(const Vector& v);   //inner product
 	Vector operator/( float f );
