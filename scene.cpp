@@ -62,7 +62,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
    {
      PN.normalize();
 	 //Calculate D
-	 D = PN * P0;
+	 D = -(PN * P0);
    }
 }
 
@@ -89,22 +89,21 @@ Vector Plane::getNormal(Vector point)
 bool Sphere::intercepts(Ray& r, float& t)
 {
 	float b, c;
-	Vector co = r.origin - center;
+	Vector oc = center - r.origin;
 
-	c = co * co - radius * radius;
-	b = co * r.direction * 2.;
+	c = oc * oc - radius * radius;
+	b = oc * r.direction;
 
 	if (c < .0) // ray inside sphere
 	{
-		t = b + sqrtf(b * b - 4. * c);
+		t = b + sqrtf(b * b - c);
 		return true;
 	}
-	else 
+	else
 	{
-		float d = sqrtf(b * b - 4. * c);
+		float d = sqrtf(b * b - c);
 		if (b > .0 && d > .0)
 		{
-
 			t = b - d;
 			return true;
 		}
