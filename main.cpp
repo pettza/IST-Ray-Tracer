@@ -84,26 +84,56 @@ Object* intercept(Ray& ray, float& dist)
 
 Color rayTracing( Ray ray, int depth, float ior_1)  //index of refraction of medium 1 where the ray is travelling
 {
-	float dist = std::numeric_limits<float>::infinity();
+	// Find intersection if one exists
+	float dist;
 	Object* obj = intercept(ray, dist);
 
-	if (obj)
-	{
-		Vector hit_p = ray.origin + ray.direction * dist;
-		Vector N = obj->getNormal(hit_p);
-		
-		int n_lights = scene->getNumLights();
-		for (int light_idx = 0; light_idx < n_lights; light_idx++)
-		{
-			Light* light = scene->getLight(light_idx);
-			Vector L = light->position - hit_p;
-			L.normalize();
+	// If there's none return background color
+	if (!obj) return scene->GetBackgroundColor();
+	
+	Vector hitP = ray.origin + ray.direction * dist;
+	Vector N = obj->getNormal(hitP);
+	Vector rDir = ray.direction - N * 2 * (ray.direction * N);
+	hitP = hitP + N * 1.0e-2;
+	Material& material = *(obj->GetMaterial());
 
-			if (N * L > .0) return obj->GetMaterial()->GetDiffColor();
-		}
+	// Color accumulator
+	Color colorAcc(0.0, 0.0, 0.0);
+
+	int n_lights = scene->getNumLights();
+	for (int light_idx = 0; light_idx < n_lights; light_idx++)
+	{
+		Light* light = scene->getLight(light_idx);
+		Vector L = light->position - hitP;
+		float lightDist = L.length();
+		L.normalize();
+
+		float lambert = N * L;
+
+		if (lambert <= .0) continue;
+
+		Ray shadowRay(hitP, L);
+
+		float shadowDist;
+		Object* sObj = intercept(shadowRay, shadowDist);
+
+		if (sObj && shadowDist < lightDist) continue;
+
+		colorAcc += light->color * material.GetDiffColor() * material.GetDiffuse() * lambert;
+		
+		float shine = pow(max(0.0, L * rDir), material.GetShine());
+		colorAcc += light->color * material.GetSpecColor() * material.GetSpecular() * shine;
 	}
 
-	return scene->GetBackgroundColor();
+	// If we reached the max recursion depth just return the color so far
+	if (depth > MAX_DEPTH) return colorAcc;
+
+	// Else follow reflection and refraction rays
+	Ray rRay(hitP, rDir);
+	Color rColor = rayTracing(rRay, depth + 1, 1.0);
+	colorAcc += rColor * material.GetReflection();
+
+	return colorAcc;
 }
 
 /////////////////////////////////////////////////////////////////////// ERRORS
@@ -303,6 +333,7 @@ void renderScene()
 
 			Ray ray = scene->GetCamera()->PrimaryRay(pixel);
 			color = rayTracing(ray, 1, 1.0);
+			color.clamp();
 			
 			img_Data[counter++] = u8fromfloat((float)color.r());
 			img_Data[counter++] = u8fromfloat((float)color.g());

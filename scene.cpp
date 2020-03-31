@@ -49,12 +49,10 @@ Plane::Plane(Vector& a_PN, float a_D)
 
 Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 {
-   float l;
-
    //Calculate the normal plane: counter-clockwise vectorial product.
    PN = (P2 - P1) % (P0 - P1);
 
-   if ((l=PN.length()) == 0.0)
+   if (PN.length() == 0.0)
    {
      cerr << "DEGENERATED PLANE!\n";
    }
@@ -62,7 +60,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
    {
      PN.normalize();
 	 //Calculate D
-	 D = -(PN * P0);
+	 D = PN * P0;
    }
 }
 
@@ -76,7 +74,11 @@ bool Plane::intercepts( Ray& r, float& t )
 
 	if (prod == .0) return false;
 	
-	t = - (D + r.origin * PN) / prod;	
+	float t_i = (D - r.origin * PN) / prod;
+
+	if (t_i <= 0.0) return false;
+
+	t = t_i;
 	return true;
 }
 
