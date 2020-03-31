@@ -124,8 +124,7 @@
       <Command>xcopy /y /d  "$(ProjectDir)Dependencies\lib\$(Platform)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>Dependencies.exe</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -198,6 +197,7 @@
     <None Include="P3D_Scenes\balls_high.p3f" />
     <None Include="P3D_Scenes\balls_low.p3f" />
     <None Include="P3D_Scenes\balls_medium.p3f" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="skybox\back.jpg" />
@@ -209,5 +209,14 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\freeglut.redist.2.8.1.15\build\native\freeglut.redist.targets" Condition="Exists('packages\freeglut.redist.2.8.1.15\build\native\freeglut.redist.targets')" />
+    <Import Project="packages\freeglut.2.8.1.15\build\native\freeglut.targets" Condition="Exists('packages\freeglut.2.8.1.15\build\native\freeglut.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\freeglut.redist.2.8.1.15\build\native\freeglut.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\freeglut.redist.2.8.1.15\build\native\freeglut.redist.targets'))" />
+    <Error Condition="!Exists('packages\freeglut.2.8.1.15\build\native\freeglut.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\freeglut.2.8.1.15\build\native\freeglut.targets'))" />
+  </Target>
 </Project>
