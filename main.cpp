@@ -30,8 +30,6 @@
 #define VERTEX_COORD_ATTRIB 0
 #define COLOR_ATTRIB 1
 
-#define MAX_DEPTH 4
-
 //Enable OpenGL drawing.  
 bool drawModeEnabled = true;
 
@@ -60,81 +58,6 @@ int RES_X, RES_Y;
 
 int WindowHandle = 0;
 
-
-Object* intercept(Ray& ray, float& dist)
-{
-	Object* obj = nullptr;
-	dist = std::numeric_limits<float>::infinity();
-
-	int n_obj = scene->getNumObjects();
-	for (int obj_idx = 0; obj_idx < n_obj; obj_idx++)
-	{
-		Object* obj_t = scene->getObject(obj_idx);
-		float dist_t;
-		if (obj_t->intercepts(ray, dist_t) && dist_t < dist)
-		{
-			dist = dist_t;
-			obj = obj_t;
-		}
-	}
-
-	return obj;
-}
-
-
-Color rayTracing( Ray ray, int depth, float ior_1)  //index of refraction of medium 1 where the ray is travelling
-{
-	// Find intersection if one exists
-	float dist;
-	Object* obj = intercept(ray, dist);
-
-	// If there's none return background color
-	if (!obj) return scene->GetBackgroundColor();
-	
-	Vector hitP = ray.origin + ray.direction * dist;
-	Vector N = obj->getNormal(hitP);
-	Vector rDir = ray.direction - N * 2 * (ray.direction * N);
-	hitP = hitP + N * 1.0e-2;
-	Material& material = *(obj->GetMaterial());
-
-	// Color accumulator
-	Color colorAcc(0.0, 0.0, 0.0);
-
-	int n_lights = scene->getNumLights();
-	for (int light_idx = 0; light_idx < n_lights; light_idx++)
-	{
-		Light* light = scene->getLight(light_idx);
-		Vector L = light->position - hitP;
-		float lightDist = L.length();
-		L.normalize();
-
-		float lambert = N * L;
-
-		if (lambert <= .0) continue;
-
-		Ray shadowRay(hitP, L);
-
-		float shadowDist;
-		Object* sObj = intercept(shadowRay, shadowDist);
-
-		if (sObj && shadowDist < lightDist) continue;
-
-		colorAcc += light->color * material.GetDiffColor() * material.GetDiffuse() * lambert;
-		
-		float shine = pow(max(0.0, L * rDir), material.GetShine());
-		colorAcc += light->color * material.GetSpecColor() * material.GetSpecular() * shine;
-	}
-
-	// If we reached the max recursion depth just return the color so far
-	if (depth > MAX_DEPTH) return colorAcc;
-
-	// Else follow reflection and refraction rays
-	Ray rRay(hitP, rDir);
-	Color rColor = rayTracing(rRay, depth + 1, 1.0);
-	colorAcc += rColor * material.GetReflection();
-
-	return colorAcc;
-}
 
 /////////////////////////////////////////////////////////////////////// ERRORS
 
@@ -332,8 +255,7 @@ void renderScene()
 			pixel.y = y + 0.5f;
 
 			Ray ray = scene->GetCamera()->PrimaryRay(pixel);
-			color = rayTracing(ray, 1, 1.0);
-			color.clamp();
+			color = scene->rayTracing(ray, 1, 1.0).Clamp();
 			
 			img_Data[counter++] = u8fromfloat((float)color.r());
 			img_Data[counter++] = u8fromfloat((float)color.g());
@@ -496,8 +418,7 @@ void init_scene(void)
 		if (file.fail()) {
 			printf("\nError opening P3F file.\n");
 		}
-		else
-			break;
+		else break;
 	}
 
 	scene = new Scene();
@@ -507,7 +428,7 @@ void init_scene(void)
 	printf("\nResolutionX = %d  ResolutionY= %d.\n", RES_X, RES_Y);
 
 	// Pixel buffer to be used in the Save Image function
-	img_Data = (uint8_t*)malloc(3 * RES_X * RES_Y * sizeof(uint8_t));
+	img_Data = (uint8_t*)malloc((3 * RES_X * RES_Y) * sizeof(uint8_t));
 	if (img_Data == NULL) exit(1);
 }
 

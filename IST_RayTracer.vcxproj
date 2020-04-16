@@ -175,9 +175,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="boundingBox.cpp" />
+    <ClCompile Include="light.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="sampler.cpp" />
     <ClCompile Include="scene.cpp" />
+    <ClCompile Include="shapes.cpp" />
     <ClCompile Include="vector.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -185,10 +187,14 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="color.h" />
     <ClInclude Include="grid.h" />
+    <ClInclude Include="light.h" />
+    <ClInclude Include="material.h" />
     <ClInclude Include="maths.h" />
+    <ClInclude Include="object.h" />
     <ClInclude Include="ray.h" />
     <ClInclude Include="sampler.h" />
     <ClInclude Include="scene.h" />
+    <ClInclude Include="shapes.h" />
     <ClInclude Include="vector.h" />
   </ItemGroup>
   <ItemGroup>

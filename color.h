@@ -1,69 +1,92 @@
-#ifndef COLOR_H
-#define COLOR_H
+#pragma once
 
 #include <iostream>
-#include <cmath>
-#include <cfloat>
-using namespace std;
 
-#define CLAMP(a, b, c)		(((b) < (a)) ? (a) : (((b) > (c)) ? (c) : (b)))
+#include "maths.h"
+
+using namespace std;
 
 class Color
 {
-private:
-
- float R, G, B;
-
 public:
-		Color		()
-		     		: R(0.0), G(0.0), B(0.0)
-		     		{}
-		Color		(float r, float g, float b)
-				: R(r), G(g), B(b)
-				{}
+    Color(float r = 0.f, float g = 0.f, float b = 0.f)
+        : m_r(r), m_g(g), m_b(b)
+    {}
+    
+    Color(const Color& c) = default;
 
-  float        r		() const
-	          		{ return R; }
-  float        r		(float r)
-	          		{ return (R = r); }
-  float        g		() const
-	          		{ return G; }
-  float        g		(float g)
-	          		{ return (G = g); }
-  float        b		() const
-	          		{ return B; }
-  float        b		(float b)
-	          		{ return (B = b); }
+    // Setters and Getters
+    float r() const
+	{ return m_r; }
+    
+    float r(float r)
+	{ return m_r = r; }
+    
+    float g() const
+    { return m_g; }
+    
+    float g(float g)
+    { return m_g = g; }
+    
+    float b() const
+    { return m_b; }
+    
+    float b(float b)
+    { return m_b = b; }
+    
 
-  Color 	clamp		() const
-        			{
-        			   return Color(CLAMP(0.0, R, 1.0),
-        					CLAMP(0.0, G, 1.0),
-        					CLAMP(0.0, B, 1.0));
-        			}
+    Color Clamp() const
+    {
+        return Color(
+            clamp(0.f, m_r, 1.f),
+            clamp(0.f, m_g, 1.f),
+            clamp(0.f, m_b, 1.f)
+        );
+    }
+    
+    // Operators
+    Color operator+(const Color& c) 
+    { return Color(m_r + c.m_r, m_g + c.m_g, m_b + c.m_b); }
+    
+    Color operator*(const Color& c) const
+    { return Color(m_r * c.m_r, m_g * c.m_g, m_b * c.m_b); }
+    
+    Color operator*(float f) const 
+    { return Color(m_r * f, m_g * f, m_b * f); }
 
+    friend inline
+        Color operator*(float f, const Color& c)
+    { return c * f; }
+    
+    Color operator+=( Color c)
+    {
+        m_r += c.m_r;
+        m_g += c.m_g;
+        m_b += c.m_b;
+        return *this;
+    }
+    
+    Color operator*=(const Color& c)
+	{
+        m_r *= c.m_r;
+        m_g *= c.m_g;
+        m_b *= c.m_b;
+        return *this;
+    }
 
-  Color 	operator *	(float c) 
-        			{ return Color(R*c, G*c, B*c); }
-
-
-  Color		operator *=	(float c)
-        			{ R*=c; G*=c; B*=c; return *this; }
-
-  Color 	operator +	( Color c) 
-        			{ return Color(R+c.R, G+c.G, B+c.B); }
-  Color 	operator *	(Color c) 
-        			{ return Color(R*c.R, G*c.G, B*c.B); }
-
-  Color		operator +=	( Color c)
-        			{ R+=c.R; G+=c.G; B+=c.B; return *this; }
-  Color		operator *=	(Color c)
-				{ R*=c.R; G*=c.G; B*=c.B; return *this; }
-
+    
+    Color operator*=(float f)
+    {
+        m_r *= f;
+        m_g *= f;
+        m_b *= f;
+        return *this;
+    }
+    
    friend inline
-  istream&	operator >>	(istream& s, Color& c)
-	{ return s >> c.R >> c.G >> c.B; }
+       istream& operator>>(istream& s, Color& c)
+	{ return s >> c.m_r >> c.m_g >> c.m_b; }
+
+private:
+    float m_r, m_g, m_b;
 };
-
-
-#endif

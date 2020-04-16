@@ -5,172 +5,31 @@
 
 #include "maths.h"
 #include "scene.h"
-
-
-Triangle::Triangle(Vector& P0, Vector& P1, Vector& P2)
-{
-	points[0] = P0; points[1] = P1; points[2] = P2;
-
-	/* Calculate the normal */
-	normal = Vector(0, 0, 0);
-	normal.normalize();
-
-	//Calculate the Min and Max for bounding box
-	Min = Vector(+FLT_MAX, +FLT_MAX, +FLT_MAX);
-	Max = Vector(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-
-
-	// enlarge the bounding box a bit just in case...
-	Min -= EPSILON;
-	Max += EPSILON;
-}
-
-AABB Triangle::GetBoundingBox() {
-	return(AABB(Min, Max));
-}
-
-Vector Triangle::getNormal(Vector point)
-{
-	return normal;
-}
-
-//
-// Ray/Triangle intersection test using Tomas Moller-Ben Trumbore algorithm.
-//
-
-bool Triangle::intercepts(Ray& r, float& t ) {
-
-	return (false);
-}
-
-Plane::Plane(Vector& a_PN, float a_D)
-	: PN(a_PN), D(a_D)
-{}
-
-Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
-{
-   //Calculate the normal plane: counter-clockwise vectorial product.
-   PN = (P2 - P1) % (P0 - P1);
-
-   if (PN.length() == 0.0)
-   {
-     cerr << "DEGENERATED PLANE!\n";
-   }
-   else
-   {
-     PN.normalize();
-	 //Calculate D
-	 D = PN * P0;
-   }
-}
-
-//
-// Ray/Plane intersection test.
-//
-
-bool Plane::intercepts( Ray& r, float& t )
-{
-	float prod = PN * r.direction;
-
-	if (prod == .0) return false;
-	
-	float t_i = (D - r.origin * PN) / prod;
-
-	if (t_i <= 0.0) return false;
-
-	t = t_i;
-	return true;
-}
-
-Vector Plane::getNormal(Vector point) 
-{
-  return PN;
-}
-
-
-bool Sphere::intercepts(Ray& r, float& t)
-{
-	float b, c;
-	Vector oc = center - r.origin;
-
-	c = oc * oc - radius * radius;
-	b = oc * r.direction;
-
-	if (c < .0) // ray inside sphere
-	{
-		t = b + sqrtf(b * b - c);
-		return true;
-	}
-	else
-	{
-		float d = sqrtf(b * b - c);
-		if (b > .0 && d > .0)
-		{
-			t = b - d;
-			return true;
-		}
-	}
-
-	return false;
-}
-
-
-Vector Sphere::getNormal( Vector point )
-{
-	Vector normal = point - center;
-	return (normal.normalize());
-}
-
-AABB Sphere::GetBoundingBox() {
-	Vector a_min;
-	Vector a_max ;
-	return(AABB(a_min, a_max));
-}
-
-aaBox::aaBox(Vector& minPoint, Vector& maxPoint) //Axis aligned Box: another geometric object
-{
-	this->min = minPoint;
-	this->max = maxPoint;
-}
-
-AABB aaBox::GetBoundingBox() {
-	return(AABB(min, max));
-}
-
-bool aaBox::intercepts(Ray& ray, float& t)
-{
-		return (false);
-}
-
-Vector aaBox::getNormal(Vector point)
-{
-	return Normal;
-}
-
-Scene::Scene()
-{}
+#include "shapes.h"
 
 Scene::~Scene()
 {
-	/*for ( int i = 0; i < objects.size(); i++ )
-	{
-		delete objects[i];
-	}
-	objects.erase();
-	*/
+	for (auto obj : objects) delete obj;
+	objects.clear();
+
+	for (auto light : lights) delete light;
+	lights.clear();
+
+	delete camera;
+
+	delete skybox_img[0].img;
+	delete skybox_img[1].img;
+	delete skybox_img[2].img;
+	delete skybox_img[3].img;
+	delete skybox_img[4].img;
+	delete skybox_img[5].img;
 }
 
 int Scene::getNumObjects()
-{
-	return objects.size();
-}
-
+{ return objects.size(); }
 
 void Scene::addObject(Object* o)
-{
-	objects.push_back(o);
-}
-
+{ objects.push_back(o); }
 
 Object* Scene::getObject(unsigned int index)
 {
@@ -179,18 +38,11 @@ Object* Scene::getObject(unsigned int index)
 	return NULL;
 }
 
-
 int Scene::getNumLights()
-{
-	return lights.size();
-}
-
+{ return lights.size(); }
 
 void Scene::addLight(Light* l)
-{
-	lights.push_back(l);
-}
-
+{ lights.push_back(l); }
 
 Light* Scene::getLight(unsigned int index)
 {
@@ -208,7 +60,7 @@ void Scene::LoadSkybox(const char *sky_dir)
 	for (int i = 0; i < 6; i++) {
 		strcpy_s(buffer, sizeof(buffer), sky_dir);
 		strcat_s(buffer, sizeof(buffer), maps[i]);
-		filenames[i] = (char *)malloc(sizeof(buffer));
+		filenames[i] = (char*) malloc(sizeof(buffer));
 		strcpy_s(filenames[i], sizeof(buffer), buffer);
 	}
 	
@@ -330,172 +182,222 @@ Color Scene::GetSkyboxColor(Ray& r) {
 }
 
 
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // P3F file parsing methods.
 //
 void next_token(ifstream& file, char *token, const char *name)
 {
-  file >> token;
-  if (strcmp(token, name))
-    cerr << "'" << name << "' expected.\n";
+	file >> token;
+	if (strcmp(token, name))
+		cerr << "'" << name << "' expected.\n";
 }
 
 bool Scene::load_p3f(const char *name)
 {
-  const	int	lineSize = 1024;
-  string	cmd;
-  char		token	[256];
-  ifstream	file(name, ios::in);
-  Material *	material;
-
-  material = NULL;
-
-  if (file >> cmd)
-  {
-    while (true)
-    {
-      
-	  if (cmd == "f")   //Material
-      {
-	    double Kd, Ks, Shine, T, ior;
-	    Color cd, cs;
-
-	    file >> cd >> Kd >> cs >> Ks >> Shine >> T >> ior;
-
-	    material = new Material(cd, Kd, cs, Ks, Shine, T, ior);
-      }
-
-      else if (cmd == "s")    //Sphere
-      {
-	     Vector center;
-    	 float radius;
-         Sphere* sphere;
-
-	    file >> center >> radius;
-        sphere = new Sphere(center,radius);
-	    if (material) sphere->SetMaterial(material);
-        this->addObject( (Object*) sphere);
-      }
-
-	  else if (cmd == "box")    //axis aligned box
-	  {
-		  Vector minpoint, maxpoint;
-		  aaBox	*box;
-
-		  file >> minpoint >> maxpoint;
-		  box = new aaBox(minpoint, maxpoint);
-		  if (material) box->SetMaterial(material);
-		  this->addObject((Object*)box);
-	  }
-	  else if (cmd == "p")  // Polygon: just accepts triangles for now
-      {
-		  Vector P0, P1, P2;
-		  Triangle* triangle;
-		  unsigned total_vertices;
-		  
-		  file >> total_vertices;
-		  if (total_vertices == 3)
-		  {
-			  file >> P0 >> P1 >> P2;
-			  triangle = new Triangle(P0, P1, P2);
-			  if (material) triangle->SetMaterial(material);
-			  this->addObject( (Object*) triangle);
-		  }
-		  else
-		  {
-			  cerr << "Unsupported number of vertices.\n";
-			  break;
-		  }
-      }
-      
-	  else if (cmd == "pl")  // General Plane
-	  {
-          Vector P0, P1, P2;
-		  Plane* plane;
-
-          file >> P0 >> P1 >> P2;
-          plane = new Plane(P0, P1, P2);
-	      if (material) plane->SetMaterial(material);
-          this->addObject( (Object*) plane);
-	  }
-
-      else if (cmd == "l")  // Need to check light color since by default is white
-      {
-	    Vector pos;
-        Color color;
-
-	    file >> pos >> color;
-	    
-	      this->addLight(new Light(pos, color));
-	    
-      }
-      else if (cmd == "v")
-      {
-	    Vector up, from, at;
-	    float fov, hither;
-	    int xres, yres;
-        Camera* camera;
-		float focal_ratio; //ratio beteween the focal distance and the viewplane distance
-		float aperture_ratio; // number of times to be multiplied by the size of a pixel
-
-	    next_token (file, token, "from");
-	    file >> from;
-
-	    next_token (file, token, "at");
-	    file >> at;
-
-	    next_token (file, token, "up");
-	    file >> up;
-
-	    next_token (file, token, "angle");
-	    file >> fov;
-
-	    next_token (file, token, "hither");
-	    file >> hither;
-
-	    next_token (file, token, "resolution");
-	    file >> xres >> yres;
-
-		next_token(file, token, "aperture");
-		file >> aperture_ratio;
-
-		next_token(file, token, "focal");
-		file >> focal_ratio;
-	    // Create Camera
-		camera = new Camera( from, at, up, fov, hither, 100.0*hither, xres, yres, aperture_ratio, focal_ratio);
-        this->SetCamera(camera);
-      }
-
-      else if (cmd == "bclr")   //Background color
-      {
-		Color bgcolor;
-		file >> bgcolor;
-		this->SetBackgroundColor(bgcolor);
-	  }
+	const int lineSize = 1024;
+	string cmd;
+	char token[256];
+	ifstream file(name, ios::in);
+	Material* material = nullptr;
 	
-	  else if (cmd == "env")
-	  {
-		  file >> token;
-		  
-		  this->LoadSkybox(token);
-		  this->SetSkyBoxFlg(true);
-	  }
-      else if (cmd[0] == '#')
-      {
-	    file.ignore (lineSize, '\n');
-      }
-      else
-      {
-	    cerr << "unknown command '" << cmd << "'.\n";
-	    break;
-      }
-      if (!(file >> cmd))
-        break;
-    }
-  }
+	if (file >> cmd)
+	{
+		while (true)
+		{
+			if (cmd == "f")  //Material
+			{
+				double Kd, Ks, Shine, T, ior;
+				Color cd, cs;
+				
+				file >> cd >> Kd >> cs >> Ks >> Shine >> T >> ior;
+				
+				material = new Material(cd, Kd, cs, Ks, Shine, T, ior);
+			}
+			else if (cmd == "s")  //Sphere
+			{
+				Vector center;
+				float radius;
+				Sphere* sphere;
+				Object* obj;
+				
+				file >> center >> radius;
+				sphere = new Sphere(center,radius);
+				obj = new Object(material, sphere);
+				
+				addObject(obj);
+			}
+			else if (cmd == "box")    //axis aligned box
+			{
+				Vector minpoint, maxpoint;
+				aaBox	*box;
+				Object* obj;
+				
+				file >> minpoint >> maxpoint;
+				box = new aaBox(minpoint, maxpoint);
+				obj = new Object(material, box);
+				addObject(obj);
+			}
+			else if (cmd == "p")  // Polygon: just accepts triangles for now
+			{
+				Vector p0, p1, p2;
+				Triangle* triangle;
+				unsigned total_vertices;
+				Object* obj;
+				
+				file >> total_vertices;
+				if (total_vertices == 3)
+				{
+					file >> p0 >> p1 >> p2;
+					triangle = new Triangle(p0, p1, p2);
+					obj = new Object(material, triangle);
+					
+					addObject(obj);
+				}
+				else
+				{
+					cerr << "Unsupported number of vertices.\n";
+					break;
+				}
+			}
+			else if (cmd == "pl")  // General Plane
+			{
+				Vector p0, p1, p2;
+				Plane* plane;
+				Object* obj;
+				
+				file >> p0 >> p1 >> p2;
+				plane = new Plane(p0, p1, p2);
+				obj = new Object(material, plane);
+				
+				addObject(obj);
+			}
+			else if (cmd == "l")  // Need to check light color since by default is white
+			{
+				Vector pos;
+				Color color;
+				
+				file >> pos >> color;
+				
+				addLight(new Light(pos, color));
+			}
+			else if (cmd == "v")
+			{
+				Vector up, from, at;
+				float fov, hither;
+				int xres, yres;
+				Camera* camera;
+				float focal_ratio; //ratio beteween the focal distance and the viewplane distance
+				float aperture_ratio; // number of times to be multiplied by the size of a pixel
+				
+				next_token (file, token, "from");
+				file >> from;
+				
+				next_token (file, token, "at");
+				file >> at;
+				
+				next_token (file, token, "up");
+				file >> up;
+				
+				next_token (file, token, "angle");
+				file >> fov;
+				
+				next_token (file, token, "hither");
+				file >> hither;
+				
+				next_token (file, token, "resolution");
+				file >> xres >> yres;
+				
+				next_token(file, token, "aperture");
+				file >> aperture_ratio;
+				
+				next_token(file, token, "focal");
+				file >> focal_ratio;
+				
+				// Create Camera
+				camera = new Camera(from, at, up, fov, hither, 100.0*hither, xres, yres, aperture_ratio, focal_ratio);
+				SetCamera(camera);
+			}
+			else if (cmd == "bclr")   //Background color
+			{
+				Color bgcolor;
+				file >> bgcolor;
+				this->SetBackgroundColor(bgcolor);
+			}
+			else if (cmd == "env")
+			{
+				file >> token;
+				
+				LoadSkybox(token);
+				SetSkyBoxFlg(true);
+			}
+			else if (cmd[0] == '#')
+			{
+				file.ignore(lineSize, '\n');
+			}
+			else
+			{
+				cerr << "unknown command '" << cmd << "'.\n";
+				break;
+			}
 
-  file.close();
-  return true;
+			if (!(file >> cmd)) break;
+		}
+	}
+	
+	file.close();
+	return true;
 };
+
+bool Scene::intercept(const Ray& ray, HitInfo& hitInfo) const
+{
+	bool isHit = false;
+
+	for (auto obj : objects)
+	{
+		HitInfo tmp;
+		if (obj->intercepts(ray, tmp) && tmp.rayT < hitInfo.rayT)
+		{
+			isHit = true;
+			hitInfo = tmp;
+		}
+	}
+
+	return isHit;
+}
+
+Color Scene::rayTracing(const Ray& ray, int depth, float ior1) const //index of refraction of medium 1 where the ray is travelling
+{
+	// Find intersection if one exists
+	HitInfo hitInfo;
+	bool isHit = intercept(ray, hitInfo);
+	hitInfo.ior = ior1;
+
+	// If there's none return background color
+	if (!isHit) return GetBackgroundColor();
+
+	// Color accumulator
+	Color colorAcc(0.0, 0.0, 0.0);
+
+	// Get direct light
+	for (auto light : lights)
+		colorAcc += light->GetLighting(*this, hitInfo);
+
+	// If we reached the max recursion depth just return the color so far
+	if (depth > maxDepth) return colorAcc;
+
+	// Follow reflection ray
+	if (hitInfo.material->GetReflection() > 0.f)
+	{
+		Color rColor = rayTracing(hitInfo.GetReflectedRay(), depth + 1, ior1);
+		colorAcc += rColor * hitInfo.material->GetReflection();
+	}
+
+	// Follow refraction ray
+	if (hitInfo.material->GetTransmittance() > 0.f)
+	{
+		Color tColor = rayTracing(hitInfo.GetRefractedRay(), depth + 1, ior1);
+		colorAcc += tColor * hitInfo.material->GetTransmittance();
+	}
+
+	return colorAcc;
+}

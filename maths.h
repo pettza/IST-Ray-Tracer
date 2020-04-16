@@ -1,88 +1,50 @@
-#ifndef __MATHS__
-#define __MATHS__
+#pragma once
 
 #include <stdlib.h>
+#include <numeric>
 
-// prototypes
+constexpr float PI = 3.141592653589793238462f;
+constexpr float INF = std::numeric_limits<float>::infinity();
 
-double min(double x0, double x1);
+template<typename T>
+inline constexpr T min(T a, T b)
+{ return (a < b) ? a : b; }
 
-double max(double x0, double x1);
+template<typename T>
+inline constexpr T max(T a, T b)
+{ return (a > b) ? a : b; }
 
-double clamp(const double x, const double min, const double max);
+template<typename T>
+inline constexpr T clamp(T x, T min, T max)
+{
+	if (x < min) x = min;
+	else if (x > max) x = max;
 
-int	rand_int(void);
-
-float rand_float(void);
-
-void set_rand_seed(const int seed);
-
-
-// inlined functions
-
-//--------------------------------------------------------float to min
-inline unsigned int
-float_to_int(double x) {
-	return ((x) >= 0 ? (unsigned int)((x)+0.5) : (unsigned int)((x)-0.5));
+	return x;
 }
 
-// ----------------------------------------------------------------- min
-
-inline double
-min(double x0, double x1) {
-	return ((x0 < x1) ? x0 : x1);
+// float to int
+inline unsigned int float_to_int(double x)
+{
+	return (x >= 0) ? (unsigned int)(x + 0.5) : (unsigned int)(x - 0.5);
 }
 
-
-// ----------------------------------------------------------------- max
-
-inline double
-max(double x0, double x1) {
-	return ((x0 > x1) ? x0 : x1);
-}
-
-// ---------------------------------------------------- clamp
-
-inline double
-clamp(const double x, const double min, const double max) {
-	return (x < min ? min : (x > max ? max : x));
-}
-
-
-// ---------------------------------------------------- rand_int
 // a wrapper for rand()
+inline int rand_int(void)
+{ return rand(); }
 
-inline int
-rand_int(void) {
-	return(rand());
-}
+// rand_float
+inline float rand_float(void)
+{ return((float)rand() / (float)RAND_MAX); }
 
+// set_rand_seed
+inline void set_rand_seed(const int seed)
+{ srand(seed); }
 
-// ---------------------------------------------------- rand_float
-
-inline float
-rand_float(void) {
-	return((float)rand() / (float)RAND_MAX);
-}
-
-
-// ---------------------------------------------------- set_rand_seed
-
-inline void
-set_rand_seed(const int seed) {
-	srand(seed);
-}
-
-// ---------------------------------------------------- float to byte (unsigned char)
+// float to byte
 inline uint8_t u8fromfloat(float x)
-{
-	return (uint8_t)(x * 255.99f);
-}
+{ return (uint8_t)(x * 255.99f); }
 
-// ---------------------------------------------------- byte (unsigned char) to float
+// byte (unsigned char) to float
 inline  float u8tofloat(uint8_t x)
-{
-	return (float)(x / 255.99f);
-}
-
-#endif
+{ return (float)(x / 255.99f); }
