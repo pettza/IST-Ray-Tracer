@@ -7,6 +7,7 @@ using namespace std;
 #include "light.h"
 #include "boundingBox.h"
 #include "object.h"
+#include "il/il.h"
 
 //Skybox images constant symbolics
 enum CubeMap { RIGHT, LEFT, TOP, BOTTOM, FRONT, BACK };

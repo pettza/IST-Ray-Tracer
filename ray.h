@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vector.h"
+#include "material.h"
 
 constexpr float shadow_epsilon = 1.e-4f;
 
