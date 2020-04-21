@@ -38,9 +38,9 @@ public:
     Color Clamp() const
     {
         return Color(
-            clamp(0.f, m_r, 1.f),
-            clamp(0.f, m_g, 1.f),
-            clamp(0.f, m_b, 1.f)
+            clamp(m_r, 0.f, 1.f),
+            clamp(m_g, 0.f, 1.f),
+            clamp(m_b, 0.f, 1.f)
         );
     }
     
