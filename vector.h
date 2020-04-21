@@ -73,6 +73,12 @@ struct Vector
 	Vector& operator/=(float f)
 	{ return (*this) *= 1 / f; }
 
+	bool operator==(const Vector& v)
+	{ return (x == v.x && y == v.y && z == v.z); }
+	
+	bool operator!=(const Vector& v)
+	{ return (x != v.x || y != v.y || z != v.z); }
+
 	float LengthSquared() const
 	{ return x * x + y * y + z * z; }
 	float Length() const
