@@ -52,19 +52,64 @@ Triangle::Triangle(Vector& p0, Vector& p1, Vector& p2)
 	points[0] = p0; points[1] = p1; points[2] = p2;
 
 	/* Calculate the normal */
-	normal = Vector(0, 0, 0);
+	normal = (p2 - p1) % (p0 - p1);
 	normal.Normalize();
 }
 
 AABB Triangle::GetBoundingBox() const
 {
-	return AABB();
+	float min_x = min(points[0].x, min(points[1].x, points[2].x));
+	float min_y = min(points[0].y, min(points[1].y, points[2].y));
+	float min_z = min(points[0].z, min(points[1].z, points[2].z));
+
+	float max_x = max(points[0].x, max(points[1].x, points[2].x));
+	float max_y = max(points[0].y, max(points[1].y, points[2].y));
+	float max_z = max(points[0].z, max(points[1].z, points[2].z));
+
+	return AABB(Vector(min_x, min_y, min_z), Vector(max_x, max_y, max_z));
 }
 
 // Ray/Triangle intersection test using Tomas Moller-Ben Trumbore algorithm.
 bool Triangle::intercepts(const Ray& ray, HitInfo& hitInfo) const
 {
-	return false;
+	float a = points[1].x - points[0].x;
+	float b = points[2].x - points[0].x;
+	float c = -ray.direction.x;
+	float d = ray.origin.x - points[0].x;
+
+	float e = points[1].y - points[0].y;
+	float f = points[2].y - points[0].y;
+	float g = -ray.direction.y;
+	float h = ray.origin.y - points[0].y;
+
+	float i = points[1].z - points[0].z;
+	float j = points[2].z - points[0].z;
+	float k = -ray.direction.z;
+	float l = ray.origin.z - points[0].z;
+
+	float det = a * (f * k - g * j) + b * (g * i - e * k) + c * (e * j - f * i);
+
+	float beta = (d * (f * k - g * j) + b * (g * l - h * k) + c * (h * j - f * l)) / det;
+
+	if (beta < 0.f || beta > 1.f) return false;
+
+	float gamma = (a * (h * k - g * l) + d * (g * i - e * k) + c * (e * l - h * i)) / det;
+
+	if (gamma < 0.f || gamma > 1.f) return false;
+
+	float alpha = 1 - beta - gamma;
+
+	if (alpha < 0.f || alpha > 1.f) return false;
+
+	float t = (a * (f * l - h * j) + b * (h * i - e * l) + d * (e * j - f * i)) / det;
+
+	if (t <= 0.f) return false;
+
+	hitInfo.rayT = t;
+	hitInfo.hitP = alpha * points[0] + beta * points[1] + gamma * points[2];
+	hitInfo.normal = normal;
+
+	return true;
 }
 
 bool Sphere::intercepts(const Ray& ray, HitInfo& hitInfo) const
@@ -101,9 +146,10 @@ bool Sphere::intercepts(const Ray& ray, HitInfo& hitInfo) const
 
 AABB Sphere::GetBoundingBox() const
 {
-	Vector a_min;
-	Vector a_max;
-	return AABB(a_min, a_max);
+	Vector min = center - radius * Vector(1.f, 1.f, 1.f);
+	Vector max = center + radius * Vector(1.f, 1.f, 1.f);;
+
+	return AABB(min, max);
 }
 
 aaBox::aaBox(Vector& minPoint, Vector& maxPoint) //Axis aligned Box: another geometric object
