@@ -365,12 +365,12 @@ bool Scene::intercept(const Ray& ray, HitInfo& hitInfo) const
 	return isHit;
 }
 
-Color Scene::rayTracing(const Ray& ray, int depth, float ior1) const //index of refraction of medium 1 where the ray is travelling
+Color Scene::rayTracing(const Ray& ray, int depth, float ior) const //index of refraction of medium 1 where the ray is travelling
 {
 	// Find intersection if one exists
 	HitInfo hitInfo;
 	bool isHit = intercept(ray, hitInfo);
-	hitInfo.ior = ior1;
+	hitInfo.ior = ior;
 
 	// If there's none return background color
 	if (!isHit) return GetBackgroundColor();
@@ -388,15 +388,20 @@ Color Scene::rayTracing(const Ray& ray, int depth, float ior1) const //index of 
 	// Follow reflection ray
 	if (hitInfo.material->GetReflection() > 0.f)
 	{
-		Color rColor = rayTracing(hitInfo.GetReflectedRay(), depth + 1, ior1);
+		Color rColor = rayTracing(hitInfo.GetReflectedRay(), depth + 1, ior);
 		colorAcc += rColor * hitInfo.material->GetReflection();
 	}
 
 	// Follow refraction ray
 	if (hitInfo.material->GetTransmittance() > 0.f)
 	{
-		Color tColor = rayTracing(hitInfo.GetRefractedRay(), depth + 1, ior1);
-		colorAcc += tColor * hitInfo.material->GetTransmittance();
+		Ray tRay = hitInfo.GetRefractedRay();
+		if (tRay.direction != Vector(0.f, 0.f, 0.f));
+		{
+			float ior2 = (ior == hitInfo.material->GetRefrIndex()) ? 1.f : hitInfo.material->GetRefrIndex();
+			Color tColor = rayTracing(tRay, depth + 1, ior2);
+			colorAcc += tColor * hitInfo.material->GetTransmittance();
+		}
 	}
 
 	return colorAcc;

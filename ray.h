@@ -52,15 +52,19 @@ struct HitInfo
 		if (!cachedRefracted)
 		{
 			cachedRefracted = true;
+			float ior2 = (ior == material->GetRefrIndex()) ? 1.f : material->GetRefrIndex();
 
 			Vector i_n = normal * (incident * normal);
 			Vector i_t = incident - i_n;
-			Vector t_t = (ior / material->GetRefrIndex()) * i_t;
+			Vector t_t = (ior / ior2) * i_t;
+
+			float norm_magn_sq = 1 - t_t.LengthSquared();
 
 			refracted.origin = hitP;
-			refracted.direction = t_t - sqrtf(1 - t_t.LengthSquared()) * normal;
-
 			refracted.OffsetOrigin(-normal);
+
+			if (norm_magn_sq <= 0.f) refracted.direction = Vector(0.f, 0.f, 0.f);
+			else refracted.direction = t_t - sqrtf(norm_magn_sq) * normal;
 		}
 
 		return refracted;
